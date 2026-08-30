@@ -1,0 +1,2804 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=ai-legible&utm_source=comment&utm_medium=referral&utm_id=f19fdb1d-5cb6-4a2f-b1e4-6837701fee43
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+<meta name="hosting-provider" content="Netlify">
+<meta name="netlify-deploy" content="https://netlify.new/?utm_campaign=ai-legible&amp;utm_source=meta&amp;utm_medium=referral&amp;utm_id=f19fdb1d-5cb6-4a2f-b1e4-6837701fee43">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
+<title>XClash Interactive Map</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#222;font-family:Arial,sans-serif}
+#app{height:100%;display:flex;flex-direction:column}
+#toolbar{flex:0 0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;background:#333;color:#fff;z-index:5}
+#toolbar strong{font-size:14px}
+#selected-count{font-weight:bold}
+button{border:0;border-radius:6px;padding:8px 11px;background:#555;color:#fff;font-weight:700;cursor:pointer}
+button:active{transform:scale(.97)}
+#clear{margin-left:auto}
+#route{background:#315d9b}
+.export-group{display:flex;gap:4px;align-items:center}
+.import-label{display:inline-flex;align-items:center}
+.import-label input{display:none}
+#map-viewport{flex:1;min-height:0;overflow:auto;background:#fff;-webkit-overflow-scrolling:touch}
+#map-container{min-width:700px}
+#map-container svg{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none}
+rect.xcell{cursor:pointer;transition:filter .12s,fill .12s,stroke .12s}
+rect.xcell:hover{stroke:#111!important;stroke-width:2!important}
+text.xtext{pointer-events:none}
+rect.xcell.selected{stroke:#315500!important;stroke-width:2!important;filter:none!important}
+rect.xcell.route{stroke:#1769aa!important;stroke-width:3!important;stroke-dasharray:5 3}
+rect.xcell.route.selected{stroke:#315500!important;stroke-width:3!important;stroke-dasharray:none}
+rect.xcell.border-start{stroke:#ff8c00!important;stroke-width:3!important}
+rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;stroke-dasharray:none}
+#message{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(0,0,0,.84);color:#fff;padding:9px 13px;border-radius:7px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;text-align:center;max-width:90%}
+#message.show{opacity:1}
+#route-info{width:100%;font-size:12px;opacity:.9}
+#cell-designation{font-weight:bold;min-width:72px}
+#mode-wrap{display:flex;align-items:center;gap:5px;font-size:13px}
+#mode-wrap input{width:16px;height:16px;margin:0}
+@media(max-width:600px){
+  #toolbar{padding:6px 7px}
+  button{padding:7px 9px;font-size:12px}
+  #route-info{order:10}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <strong>Selected:</strong><span id="selected-count">0</span><span id="selected-limit">/ 9</span>
+    <span>Cell:</span><span id="cell-designation">—</span>
+    <label id="mode-wrap"><input id="calculation-mode" type="checkbox"> Calculation mode</label>
+    <span class="export-group"><strong>Export:</strong><button id="export-png" type="button">PNG</button><button id="export-jpeg" type="button">JPEG</button></span>
+    <span class="export-group"><strong>Excel:</strong><button id="export-xlsx" type="button">Export</button><label class="import-label"><button id="import-xlsx-button" type="button">Import</button><input id="import-xlsx" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label></span>
+    <button id="route">Clear route</button>
+    <button id="clear">Clear</button>
+    <div id="route-info">Calculation mode: click an outer-border territory to calculate your 9-block route.</div>
+  </div>
+
+  <div id="map-viewport">
+    <div id="map-container">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1657 1141" width="100%" height="100%">
+<style>
+  text { font-family: Arial, Helvetica, sans-serif; fill:#111; text-anchor:middle; dominant-baseline:middle; }
+  .celltext { font-size:8.2px; }
+  .specialtext { font-size:9px; font-weight:500; }
+  rect { shape-rendering:crispEdges; }
+</style>
+<rect x="0" y="0" width="1657" height="1141" fill="white"/>
+
+<rect x="5" y="4" width="82" height="57" fill="rgb(248,248,8)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="22.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-35" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="4" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="27.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="169" y="4" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="27.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="251" y="4" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="27.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="334" y="4" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="22.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-35" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="416" y="4" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="27.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="498" y="4" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="27.5">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-35" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="580" y="4" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="27.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="663" y="4" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="27.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="745" y="4" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="27.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="827" y="4" width="82" height="57" fill="rgb(248,248,8)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="22.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-35" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="909" y="4" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="27.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="992" y="4" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="27.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="1074" y="4" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="22.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-35" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="1156" y="4" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="27.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="1238" y="4" width="83" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="27.5">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-35" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="1321" y="4" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="27.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="1403" y="4" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="27.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="1485" y="4" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="27.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="1567" y="4" width="83" height="57" fill="rgb(248,248,8)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="22.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-35" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="61" width="82" height="56" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="84.0">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="251" y="61" width="83" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="334" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="416" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="498" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="580" y="61" width="83" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="663" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="745" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="827" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="909" y="61" width="83" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="992" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1074" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1156" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1238" y="61" width="83" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1321" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1403" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1485" y="61" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="84.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="61" width="83" height="56" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="84.0">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="117" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="140.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="117" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="140.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="117" width="82" height="57" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="140.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="251" y="117" width="83" height="57" fill="rgb(152,216,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="140.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="334" y="117" width="82" height="57" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="135.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="416" y="117" width="82" height="57" fill="rgb(152,216,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="140.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="498" y="117" width="82" height="57" fill="rgb(240,200,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="140.5">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="580" y="117" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="140.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="663" y="117" width="82" height="57" fill="rgb(152,216,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="140.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="745" y="117" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="140.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="827" y="117" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="135.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="909" y="117" width="83" height="57" fill="rgb(152,216,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="140.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="992" y="117" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="140.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1074" y="117" width="82" height="57" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="135.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="1156" y="117" width="82" height="57" fill="rgb(152,216,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="140.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="1238" y="117" width="83" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="140.5">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="1321" y="117" width="82" height="57" fill="rgb(152,216,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="140.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="1403" y="117" width="82" height="57" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="140.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="1485" y="117" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="140.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="117" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="140.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="174" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="197.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="174" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="197.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="174" width="82" height="57" fill="rgb(152,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="197.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="251" y="174" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="197.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="334" y="174" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="197.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="416" y="174" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="197.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="498" y="174" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="197.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="580" y="174" width="83" height="57" fill="rgb(248,248,8)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="192.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="663" y="174" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="197.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="745" y="174" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="192.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="827" y="174" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="197.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="909" y="174" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="197.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="992" y="174" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="192.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="1074" y="174" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="197.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1156" y="174" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="197.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1238" y="174" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="197.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1321" y="174" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="197.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1403" y="174" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="192.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="1485" y="174" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="197.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="174" width="83" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="192.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="231" width="82" height="56" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="254.0">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="231" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="254.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="231" width="82" height="56" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="249.0">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="251" y="231" width="83" height="56" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="254.0">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="334" y="231" width="82" height="56" fill="rgb(248,248,8)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="249.0">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="416" y="231" width="82" height="56" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="254.0">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="498" y="231" width="82" height="56" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="254.0">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="580" y="231" width="83" height="56" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="254.0">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="663" y="231" width="82" height="56" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="254.0">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="745" y="231" width="82" height="56" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="254.0">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="827" y="231" width="82" height="56" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="254.0">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="909" y="231" width="83" height="56" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="254.0">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="992" y="231" width="82" height="56" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="254.0">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="1074" y="231" width="82" height="56" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="254.0">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="1156" y="231" width="82" height="56" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="249.0">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="1238" y="231" width="83" height="56" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="254.0">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="1321" y="231" width="82" height="56" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="254.0">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1403" y="231" width="82" height="56" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="254.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="1485" y="231" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="254.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="231" width="83" height="56" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="254.0">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="287" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="310.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="287" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="310.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="287" width="82" height="57" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="310.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="251" y="287" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="310.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="334" y="287" width="82" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="310.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="416" y="287" width="82" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="310.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="498" y="287" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="310.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="580" y="287" width="83" height="57" fill="rgb(248,248,8)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="305.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">4</tspan>
+</text>
+<rect x="663" y="287" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="310.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="745" y="287" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="305.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">4</tspan>
+</text>
+<rect x="827" y="287" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="310.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="909" y="287" width="83" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="310.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="992" y="287" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="305.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">4</tspan>
+</text>
+<rect x="1074" y="287" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="310.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="1156" y="287" width="82" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="310.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="1238" y="287" width="83" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="310.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="1321" y="287" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="310.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1403" y="287" width="82" height="57" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="310.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="1485" y="287" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="310.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="287" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="310.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="344" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="367.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="344" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="367.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="344" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="367.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="251" y="344" width="83" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="362.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="334" y="344" width="82" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="367.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="416" y="344" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="367.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="498" y="344" width="82" height="57" fill="rgb(0,128,184)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="367.5">
+<tspan dy="8" font-size="28px">7</tspan>
+</text>
+<rect x="580" y="344" width="83" height="57" fill="rgb(0,112,160)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="367.5">
+<tspan dy="8" font-size="28px">8</tspan>
+</text>
+<rect x="663" y="344" width="82" height="57" fill="rgb(0,112,160)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="367.5">
+<tspan dy="8" font-size="28px">8</tspan>
+</text>
+<rect x="745" y="344" width="82" height="57" fill="rgb(0,128,184)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="367.5">
+<tspan dy="8" font-size="28px">7</tspan>
+</text>
+<rect x="827" y="344" width="82" height="57" fill="rgb(32,88,144)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="367.5">
+<tspan dy="8" font-size="28px">9</tspan>
+</text>
+<rect x="909" y="344" width="83" height="57" fill="rgb(0,128,184)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="367.5">
+<tspan dy="8" font-size="28px">7</tspan>
+</text>
+<rect x="992" y="344" width="82" height="57" fill="rgb(0,112,160)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="367.5">
+<tspan dy="8" font-size="28px">8</tspan>
+</text>
+<rect x="1074" y="344" width="82" height="57" fill="rgb(0,128,184)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="367.5">
+<tspan dy="8" font-size="28px">7</tspan>
+</text>
+<rect x="1156" y="344" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="367.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="1238" y="344" width="83" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="367.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="1321" y="344" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="367.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1403" y="344" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="367.5">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="1485" y="344" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="367.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="344" width="83" height="57" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="362.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="401" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="419.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="401" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="424.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="401" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="419.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="251" y="401" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="424.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="334" y="401" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="424.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="416" y="401" width="82" height="57" fill="rgb(249,129,41)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="424.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">4</tspan>
+</text>
+<rect x="498" y="401" width="82" height="57" fill="rgb(0,112,160)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="424.5">
+<tspan dy="8" font-size="28px">8</tspan>
+</text>
+<rect x="580" y="401" width="165" height="57" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="419.5">
+<tspan dx="43" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">5</tspan>
+</text>
+<!-- <rect x="663" y="401" width="82" height="57" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="419.5">
+<tspan x="704.0" dy="0">Level 5 Town Gold</tspan>
+<tspan x="704.0" dy="10">Mine Output Speed</tspan>
+<tspan x="704.0" dy="10">+20%</tspan>
+</text> -->
+<rect x="745" y="401" width="82" height="57" fill="rgb(32,88,152)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="424.5">
+<tspan dy="8" font-size="28px">9</tspan>
+</text>
+<rect x="827" y="401" width="82" height="57" fill="rgb(16,56,96)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="424.5">
+<tspan dy="8" font-size="28px">10</tspan>
+</text>
+<rect x="909" y="401" width="83" height="57" fill="rgb(32,88,152)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="424.5">
+<tspan dy="8" font-size="28px">9</tspan>
+</text>
+<rect x="992" y="401" width="82" height="113" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="424.5">
+<tspan dx="2" dy="38" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">5</tspan>
+</text>
+<rect x="1074" y="401" width="82" height="57" fill="rgb(0,112,160)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="424.5">
+<tspan dy="8" font-size="28px">8</tspan>
+</text>
+<rect x="1156" y="401" width="82" height="57" fill="rgb(248,248,8)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="419.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">4</tspan>
+</text>
+<rect x="1238" y="401" width="83" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="424.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="1321" y="401" width="82" height="57" fill="rgb(248,248,8)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="419.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="1403" y="401" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="424.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1485" y="401" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="424.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="401" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="424.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="458" width="82" height="56" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="481.0">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="458" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="481.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="458" width="82" height="56" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="481.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="251" y="458" width="83" height="56" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="481.0">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="334" y="458" width="82" height="56" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="481.0">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="416" y="458" width="82" height="56" fill="rgb(0,128,184)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="481.0">
+<tspan dy="8" font-size="28px">7</tspan>
+</text>
+<rect x="498" y="458" width="82" height="56" fill="rgb(0,128,184)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="481.0">
+<tspan dy="8" font-size="28px">7</tspan>
+</text>
+<rect x="580" y="458" width="83" height="56" fill="rgb(32,88,144)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="481.0">
+<tspan dy="8" font-size="28px">9</tspan>
+</text>
+<rect x="663" y="458" width="82" height="56" fill="rgb(16,56,96)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="481.0">
+<tspan dy="8" font-size="28px">10</tspan>
+</text>
+<rect x="909" y="458" width="83" height="56" fill="rgb(16,56,96)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="481.0">
+<tspan dy="8" font-size="28px">10</tspan>
+</text>
+<!-- <rect x="992" y="458" width="82" height="56" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="481.0">
+<tspan x="1033.0" dy="0">Level 5 Town Food</tspan>
+<tspan x="1033.0" dy="10">Output Speed +20%</tspan>
+</text> -->
+<rect x="1074" y="458" width="82" height="56" fill="rgb(0,112,160)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="481.0">
+<tspan dy="8" font-size="28px">8</tspan>
+</text>
+<rect x="1156" y="458" width="82" height="56" fill="rgb(0,128,184)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="481.0">
+<tspan dy="8" font-size="28px">7</tspan>
+</text>
+<rect x="1238" y="458" width="83" height="56" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="481.0">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="1321" y="458" width="82" height="56" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="481.0">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1403" y="458" width="82" height="56" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="481.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="1485" y="458" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="481.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="458" width="83" height="56" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="481.0">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="514" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="537.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="514" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="537.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="514" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="537.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="251" y="514" width="83" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="532.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="334" y="514" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="537.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="416" y="514" width="82" height="57" fill="rgb(0,128,184)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="537.5">
+<tspan dy="8" font-size="28px">7</tspan>
+</text>
+<rect x="498" y="514" width="82" height="57" fill="rgb(32,88,152)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="537.5">
+<tspan dy="8" font-size="28px">9</tspan>
+</text>
+<rect x="580" y="514" width="83" height="57" fill="rgb(16,56,96)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="537.5">
+<tspan dy="8" font-size="28px">10</tspan>
+</text>
+<rect x="992" y="514" width="82" height="57" fill="rgb(32,88,152)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="537.5">
+<tspan dy="8" font-size="28px">9</tspan>
+</text>
+<rect x="1074" y="514" width="82" height="57" fill="rgb(32,88,152)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="537.5">
+<tspan dy="8" font-size="28px">9</tspan>
+</text>
+<rect x="1156" y="514" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="532.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">4</tspan>
+</text>
+<rect x="1238" y="514" width="83" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="537.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="1321" y="514" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="537.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1403" y="514" width="82" height="57" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="532.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="1485" y="514" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="537.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="514" width="83" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="537.5">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="571" width="82" height="57" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="589.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="571" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="594.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="571" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="594.5">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="251" y="571" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="594.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="334" y="571" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="594.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="416" y="571" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="589.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">4</tspan>
+</text>
+<rect x="498" y="571" width="82" height="57" fill="rgb(32,88,144)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="594.5">
+<tspan dy="8" font-size="28px">9</tspan>
+</text>
+<rect x="580" y="571" width="83" height="57" fill="rgb(32,88,144)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="594.5">
+<tspan dy="8" font-size="28px">9</tspan>
+</text>
+<rect x="992" y="571" width="82" height="57" fill="rgb(16,56,96)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="594.5">
+<tspan dy="8" font-size="28px">10</tspan>
+</text>
+<rect x="1074" y="571" width="82" height="57" fill="rgb(32,88,144)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="594.5">
+<tspan dy="8" font-size="28px">9</tspan>
+</text>
+<rect x="1156" y="571" width="82" height="57" fill="rgb(0,128,184)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="594.5">
+<tspan dy="8" font-size="28px">7</tspan>
+</text>
+<rect x="1238" y="571" width="83" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="594.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="1321" y="571" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="589.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="1403" y="571" width="82" height="57" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="594.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="1485" y="571" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="594.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="571" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="594.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="628" width="82" height="56" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="651.0">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="628" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="651.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="628" width="82" height="56" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="651.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="251" y="628" width="83" height="56" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="651.0">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="334" y="628" width="82" height="56" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="651.0">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="416" y="628" width="82" height="56" fill="rgb(0,128,184)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="651.0">
+<tspan dy="8" font-size="28px">7</tspan>
+</text>
+<rect x="498" y="628" width="82" height="56" fill="rgb(0,112,160)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="651.0">
+<tspan dy="8" font-size="28px">8</tspan>
+</text>
+<rect x="580" y="628" width="83" height="113" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="651.0">
+<tspan dx="2" dy="38" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">5</tspan>
+</text>
+<rect x="663" y="628" width="82" height="56" fill="rgb(16,56,96)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="651.0">
+<tspan dy="8" font-size="28px">10</tspan>
+</text>
+<rect x="909" y="628" width="83" height="56" fill="rgb(16,56,96)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="651.0">
+<tspan dy="8" font-size="28px">10</tspan>
+</text>
+<rect x="992" y="628" width="82" height="56" fill="rgb(32,88,152)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="651.0">
+<tspan dy="8" font-size="28px">9</tspan>
+</text>
+<rect x="1074" y="628" width="82" height="56" fill="rgb(0,128,184)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="651.0">
+<tspan dy="8" font-size="28px">7</tspan>
+</text>
+<rect x="1156" y="628" width="82" height="56" fill="rgb(0,128,184)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="651.0">
+<tspan dy="8" font-size="28px">7</tspan>
+</text>
+<rect x="1238" y="628" width="83" height="56" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="651.0">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="1321" y="628" width="82" height="56" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="651.0">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1403" y="628" width="82" height="56" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="651.0">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1485" y="628" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="651.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="628" width="83" height="56" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="651.0">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="684" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="707.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="684" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="707.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="684" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="707.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="251" y="684" width="83" height="57" fill="rgb(248,248,8)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="702.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="334" y="684" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="707.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="416" y="684" width="82" height="57" fill="rgb(249,129,41)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="707.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">4</tspan>
+</text>
+<rect x="498" y="684" width="82" height="57" fill="rgb(0,112,160)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="707.5">
+<tspan dy="8" font-size="28px">8</tspan>
+</text>
+<!-- <rect x="580" y="684" width="83" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="707.5">
+<tspan x="621.5" dy="0">Level 2 Frost</tspan>
+<tspan x="621.5" dy="10">Mine</tspan>
+</text> -->
+<rect x="663" y="684" width="82" height="57" fill="rgb(32,88,144)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="707.5">
+<tspan dy="8" font-size="28px">9</tspan>
+</text>
+<rect x="745" y="684" width="82" height="57" fill="rgb(16,56,96)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="707.5">
+<tspan dy="8" font-size="28px">10</tspan>
+</text>
+<rect x="827" y="684" width="82" height="57" fill="rgb(32,88,144)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="707.5">
+<tspan dy="8" font-size="28px">9</tspan>
+</text>
+<rect x="1074" y="684" width="82" height="57" fill="rgb(0,112,160)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="707.5">
+<tspan dy="8" font-size="28px">8</tspan>
+</text>
+<rect x="1156" y="684" width="82" height="57" fill="rgb(248,248,8)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="702.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">4</tspan>
+</text>
+<rect x="1238" y="684" width="83" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="707.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="1321" y="684" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="707.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1403" y="684" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="702.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="1485" y="684" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="707.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="684" width="83" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="702.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="741" width="82" height="57" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="759.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="741" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="764.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="741" width="82" height="57" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="759.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="251" y="741" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="764.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="334" y="741" width="82" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="764.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="416" y="741" width="82" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="764.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="498" y="741" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="764.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="580" y="741" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="764.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="663" y="741" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="764.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="745" y="741" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="764.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="827" y="741" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="764.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="909" y="741" width="83" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="764.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="992" y="741" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="764.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1074" y="741" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="764.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="1156" y="741" width="82" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="764.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="1238" y="741" width="83" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="764.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="1321" y="741" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="764.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1403" y="741" width="82" height="57" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="764.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="1485" y="741" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="764.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="741" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="764.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="798" width="82" height="56" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="821.0">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="798" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="821.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="798" width="82" height="56" fill="rgb(152,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="821.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="251" y="798" width="83" height="56" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="821.0">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="334" y="798" width="82" height="56" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="821.0">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="416" y="798" width="82" height="56" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="821.0">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="498" y="798" width="82" height="56" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="821.0">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="580" y="798" width="83" height="56" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="816.0">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">4</tspan>
+</text>
+<rect x="663" y="798" width="82" height="56" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="821.0">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="745" y="798" width="82" height="56" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="821.0">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="827" y="798" width="82" height="56" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="816.0">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">4</tspan>
+</text>
+<rect x="909" y="798" width="83" height="56" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="821.0">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="992" y="798" width="82" height="56" fill="rgb(249,129,41)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="821.0">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">4</tspan>
+</text>
+<rect x="1074" y="798" width="82" height="56" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="821.0">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="1156" y="798" width="82" height="56" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="821.0">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="1238" y="798" width="83" height="56" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="821.0">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="1321" y="798" width="82" height="56" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="821.0">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1403" y="798" width="82" height="56" fill="rgb(152,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="821.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="1485" y="798" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="821.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="798" width="83" height="56" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="821.0">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="854" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="877.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="854" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="877.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="854" width="82" height="57" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="877.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="251" y="854" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="877.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="334" y="854" width="82" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="877.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="416" y="854" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="872.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="498" y="854" width="82" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="877.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="580" y="854" width="83" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="877.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="663" y="854" width="82" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="877.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="745" y="854" width="82" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="877.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="827" y="854" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="877.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="909" y="854" width="83" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="877.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="992" y="854" width="82" height="57" fill="rgb(0,160,224)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="877.5">
+<tspan dy="8" font-size="28px">6</tspan>
+</text>
+<rect x="1074" y="854" width="82" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="877.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="1156" y="854" width="82" height="57" fill="rgb(32,192,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="877.5">
+<tspan dy="8" font-size="28px">5</tspan>
+</text>
+<rect x="1238" y="854" width="83" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="872.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="1321" y="854" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="877.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1403" y="854" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="877.5">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="1485" y="854" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="877.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="854" width="83" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="877.5">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="911" width="82" height="57" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="929.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="911" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="934.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="911" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="929.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="251" y="911" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="934.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="334" y="911" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="934.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="416" y="911" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="934.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="498" y="911" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="934.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="580" y="911" width="83" height="57" fill="rgb(248,248,8)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="929.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="663" y="911" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="934.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="745" y="911" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="934.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="827" y="911" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="929.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="909" y="911" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="934.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="992" y="911" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="929.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">3</tspan>
+</text>
+<rect x="1074" y="911" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="934.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1156" y="911" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="934.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1238" y="911" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="934.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1321" y="911" width="82" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="934.5">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1403" y="911" width="82" height="57" fill="rgb(152,216,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="934.5">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="1485" y="911" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="934.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="911" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="934.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="968" width="82" height="56" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="991.0">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="968" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="991.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="968" width="82" height="56" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="991.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="251" y="968" width="83" height="56" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="991.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="334" y="968" width="82" height="56" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="986.0">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="416" y="968" width="82" height="56" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="991.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="498" y="968" width="82" height="56" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="991.0">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="580" y="968" width="83" height="56" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="991.0">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="663" y="968" width="82" height="56" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="991.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="745" y="968" width="82" height="56" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="986.0">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="827" y="968" width="82" height="56" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="991.0">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="909" y="968" width="83" height="56" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="991.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="992" y="968" width="82" height="56" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="991.0">
+<tspan dy="8" font-size="28px">4</tspan>
+</text>
+<rect x="1074" y="968" width="82" height="56" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="991.0">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="1156" y="968" width="82" height="56" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="991.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="1238" y="968" width="83" height="56" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="986.0">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">2</tspan>
+</text>
+<rect x="1321" y="968" width="82" height="56" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="991.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="1403" y="968" width="82" height="56" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="991.0">
+<tspan dy="8" font-size="28px">3</tspan>
+</text>
+<rect x="1485" y="968" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="991.0">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="968" width="83" height="56" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="991.0">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="1024" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="1047.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="169" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="251" y="1024" width="83" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="334" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="416" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="498" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="580" y="1024" width="83" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="663" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="745" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="827" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="909" y="1024" width="83" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="992" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1074" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1156" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1238" y="1024" width="83" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1321" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1403" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1485" y="1024" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="1047.5">
+<tspan dy="8" font-size="28px">2</tspan>
+</text>
+<rect x="1567" y="1024" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="1047.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="5" y="1081" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="46.0" y="1099.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="87" y="1081" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="128.0" y="1104.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="169" y="1081" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="210.0" y="1104.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="251" y="1081" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="292.5" y="1104.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="334" y="1081" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="375.0" y="1104.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="416" y="1081" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="457.0" y="1104.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="498" y="1081" width="82" height="57" fill="rgb(248,248,8)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="539.0" y="1099.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="580" y="1081" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="621.5" y="1104.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="663" y="1081" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="704.0" y="1104.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="745" y="1081" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="786.0" y="1099.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="827" y="1081" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="868.0" y="1104.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="909" y="1081" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="950.5" y="1104.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="992" y="1081" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1033.0" y="1104.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="1074" y="1081" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1115.0" y="1104.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="1156" y="1081" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1197.0" y="1104.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="1238" y="1081" width="83" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1279.5" y="1099.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="1321" y="1081" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1362.0" y="1104.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="1403" y="1081" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1444.0" y="1104.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="1485" y="1081" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1526.0" y="1104.5">
+<tspan dy="8" font-size="28px">1</tspan>
+</text>
+<rect x="1567" y="1081" width="83" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
+<text class="celltext" x="1608.5" y="1104.5">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">1</tspan>
+</text>
+<rect x="745" y="458" width="164" height="56" fill="rgb(248,48,152)" stroke="#222" stroke-width="1.2"/>
+<text class="specialtext" x="827.0" y="480.5">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">6</tspan>
+</text>
+<rect x="663" y="514" width="82" height="114" fill="rgb(248,48,152)" stroke="#222" stroke-width="1.2"/>
+<text class="specialtext" x="704.0" y="560.0">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">6</tspan>
+</text>
+<rect x="745" y="514" width="164" height="114" fill="rgb(200,152,0)" stroke="#222" stroke-width="1.2"/>
+<text class="specialtext" x="827.0" y="565.5">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">7</tspan>
+</text>
+<rect x="909" y="514" width="83" height="114" fill="rgb(248,48,152)" stroke="#222" stroke-width="1.2"/>
+<text class="specialtext" x="950.5" y="554.5">
+<tspan dx="2" dy="15" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">6</tspan>
+</text>
+<rect x="745" y="628" width="164" height="56" fill="rgb(248,48,152)" stroke="#222" stroke-width="1.2"/>
+<text class="specialtext" x="827.0" y="650.5">
+<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">6</tspan>
+</text>
+<rect x="909" y="684" width="165" height="57" fill="rgb(249,129,41)" stroke="#222" stroke-width="1.2"/>
+<text class="specialtext" x="991.5" y="707.0">
+<tspan dx="2" dy="10" font-size="80px">⌂</tspan>
+<tspan dx="-34" dy="6" font-size="28px">5</tspan>
+</text>
+</svg>
+    </div>
+  </div>
+  <div id="message"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script>
+(() => {
+  const MAX = 9;
+  const KEY = "xclash-selected-v3";
+  const svg = document.querySelector("#map-container svg");
+  const count = document.querySelector("#selected-count");
+  const selectedLimit = document.querySelector("#selected-limit");
+  const cellDesignation = document.querySelector("#cell-designation");
+  const calculationMode = document.querySelector("#calculation-mode");
+  const clear = document.querySelector("#clear");
+  const routeButton = document.querySelector("#route");
+  const info = document.querySelector("#route-info");
+  const exportPng = document.querySelector("#export-png");
+  const exportJpeg = document.querySelector("#export-jpeg");
+  const exportXlsx = document.querySelector("#export-xlsx");
+  const importXlsxButton = document.querySelector("#import-xlsx-button");
+  const importXlsx = document.querySelector("#import-xlsx");
+  const msg = document.querySelector("#message");
+  if (!svg) return;
+
+  let timer;
+  const toast = text => {
+    msg.textContent = text;
+    msg.classList.add("show");
+    clearTimeout(timer);
+    timer = setTimeout(() => msg.classList.remove("show"), 1500);
+  };
+
+  const color = value => {
+    if (!value) return {r:255,g:255,b:255};
+    let m=value.match(/rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i);
+    if(m) return {r:+m[1],g:+m[2],b:+m[3]};
+    m=value.match(/^#([0-9a-f]{6})$/i);
+    if(m) return {r:parseInt(m[1].slice(0,2),16),g:parseInt(m[1].slice(2,4),16),b:parseInt(m[1].slice(4,6),16)};
+    return {r:255,g:255,b:255};
+  };
+
+  const readable = fill => {
+    const c=color(fill), b=c.r*.299+c.g*.587+c.b*.114;
+    return b>145 ? "#111" : "#fff";
+  };
+
+  // Darken light colors; lighten already-dark colors.
+  const hoverColor = fill => {
+    const c=color(fill);
+    const factor=(c.r*.299+c.g*.587+c.b*.114)>145 ? .72 : 1.32;
+    return `rgb(${Math.min(255,Math.round(c.r*factor))},${Math.min(255,Math.round(c.g*factor))},${Math.min(255,Math.round(c.b*factor))})`;
+  };
+
+  /*
+   * BACKGROUND TERRITORY SCORING
+   *
+   * Every territory starts with Level x 10 points.
+   * Settlements are strategically more valuable than ordinary mines.
+   * Iron and Food/Wheat are preferred resources; Gold is deliberately
+   * worth less for pathing.
+   *
+   * Mine slots are tracked as a strategic constraint rather than as a
+   * visible score:
+   *   - start with 2 mine slots
+   *   - each captured village adds 1
+   *   - a Level 6 territory adds 2
+   *   - maximum 9 mine slots
+   */
+  const levelOf = text => {
+    const m = text.match(/Level\s+(\d+)/i);
+    return m ? +m[1] : 0;
+  };
+
+  const territoryType = text => {
+    const t = text.toLowerCase();
+    if (t.includes("royal city")) return "royal";
+    if (t.includes("big city")) return "bigcity";
+    if (t.includes("village")) return "village";
+    if (t.includes("factory")) return "factory";
+    if (t.includes("manor")) return "manor";
+    if (t.includes("town")) return "town";
+    if (t.includes("city")) return "city";
+    if (t.includes("mine")) return "mine";
+    return "other";
+  };
+
+  const resourceType = text => {
+    const t = text.toLowerCase();
+    if (t.includes("iron")) return "iron";
+    if (t.includes("food") || t.includes("wheat")) return "food";
+    if (t.includes("gold")) return "gold";
+    return "none";
+  };
+
+  const settlementValue = type => ({
+    village: 35,
+    city: 32,
+    manor: 30,
+    factory: 28,
+    town: 28,
+    bigcity: 45,
+    royal: 100
+  }[type] || 0);
+
+  /*
+   * Every territory has a background score based on level.
+   * Level 1 = 10, Level 2 = 20, etc.
+   *
+   * Resource preference is deliberately NOT global here. The route scorer
+   * chooses the best two resources for the particular start/target corridor.
+   */
+  const territoryScore = (text, y, maxY) => {
+    const level = levelOf(text);
+    const type = territoryType(text);
+    const resource = resourceType(text);
+    const levelScore = level * 10;
+    const resourceBase = resource === "none" ? 0 : 5;
+    const settlementBonus = settlementValue(type);
+
+    if (type === "mine") {
+      const depth = maxY > 0 ? (maxY - y) / maxY : 0;
+      const coldFactor = 0.5 + depth;
+      const fuelValue = Math.round(level * 2 * coldFactor);
+      return {
+        score: levelScore + settlementBonus + resourceBase,
+        pathScore: Math.round(levelScore * 0.45) + resourceBase + fuelValue
+      };
+    }
+
+    return {
+      score: levelScore + settlementBonus + resourceBase,
+      pathScore: levelScore + settlementBonus + resourceBase
+    };
+  };
+
+  /*
+   * The SVG has groups, so querySelectorAll() is used rather than
+   * looking only at direct children.
+   */
+  // The source SVG contains 20 horizontal grid rows, not 14.
+  // We therefore use the actual map grid: A-T horizontally and 1-20 vertically.
+  // Each territory gets the coordinate of its upper-left grid cell; if it spans
+  // multiple grid cells, its full footprint is also stored in data-grid-footprint.
+  const columnStarts = [5,87,169,251,334,416,498,580,663,745,827,909,992,1074,1156,1238,1321,1403,1485,1567];
+  const rowStarts = [4,61,117,174,231,287,344,401,458,514,571,628,684,741,798,854,911,968,1024,1081];
+  const columnLetters = "ABCDEFGHIJKLMNOPQRST".split("");
+
+  const nearestIndex = (value, starts) => {
+    let best = 0, bestDist = Infinity;
+    starts.forEach((start, i) => {
+      const d = Math.abs(value - start);
+      if (d < bestDist) { bestDist = d; best = i; }
+    });
+    return best;
+  };
+
+  const footprintFor = (x,y,w,h) => {
+    const colStart = nearestIndex(x, columnStarts);
+    const rowStart = nearestIndex(y, rowStarts);
+    const coveredCols = [];
+    const coveredRows = [];
+    columnStarts.forEach((sx,i) => {
+      const cellRight = sx + (i === columnStarts.length - 1 ? 83 : (columnStarts[i+1] - sx - 1));
+      if (sx < x + w && cellRight > x) coveredCols.push(i);
+    });
+    rowStarts.forEach((sy,i) => {
+      const cellBottom = sy + (i === rowStarts.length - 1 ? 56 : (rowStarts[i+1] - sy - 1));
+      if (sy < y + h && cellBottom > y) coveredRows.push(i);
+    });
+    const coords=[];
+    coveredRows.forEach(r => coveredCols.forEach(c => coords.push(`${columnLetters[c]}${r+1}`)));
+    const first = coords[0] || `${columnLetters[colStart]}${rowStart+1}`;
+    const last = coords[coords.length - 1] || first;
+    return {
+      coordinate: first === last ? first : `${first}–${last}`,
+      anchorCoordinate: `${columnLetters[colStart]}${rowStart+1}`,
+      footprint: coords,
+      column: columnLetters[colStart],
+      row: rowStart+1
+    };
+  };
+
+  const rects=[...svg.querySelectorAll("rect")];
+  const texts=[...svg.querySelectorAll("text")].map(t=>{
+    const x=parseFloat(t.getAttribute("x"))||0;
+    const y=parseFloat(t.getAttribute("y"))||0;
+    return {el:t,x,y,text:t.textContent.trim()};
+  });
+
+  const cells=[];
+  rects.forEach((rect,index)=>{
+    const x=parseFloat(rect.getAttribute("x"))||0;
+    const y=parseFloat(rect.getAttribute("y"))||0;
+    const w=parseFloat(rect.getAttribute("width"))||0;
+    const h=parseFloat(rect.getAttribute("height"))||0;
+
+    // Only ignore the SVG's giant background.
+    if(w>1000 && h>500){
+      rect.classList.add("map-background");
+      return;
+    }
+
+    const cx=x+w/2, cy=y+h/2;
+    let nearest=null, dist=Infinity;
+
+    texts.forEach(t=>{
+      const d=((t.x-cx)/82)**2+((t.y-cy)/57)**2;
+      if(d<dist){dist=d;nearest=t;}
+    });
+
+    // A text label must actually be reasonably close to this rectangle.
+    const label=nearest && dist<1.0 ? nearest.text : "";
+    const original=rect.getAttribute("fill")||"#fff";
+    const id=`${x}_${y}_${w}_${h}`;
+    const grid = footprintFor(x,y,w,h);
+
+    rect.classList.add("xcell");
+    rect.dataset.id=id;
+    rect.dataset.coordinate=grid.coordinate;
+    rect.dataset.gridFootprint=grid.footprint.join(",");
+    rect.dataset.originalFill=original;
+
+    if(nearest && label){
+      nearest.el.classList.add("xtext");
+      nearest.el.dataset.cellId=id;
+      nearest.el.style.fill=readable(original);
+    }
+
+    const cell={
+      rect,text:nearest?.el||null,id,x,y,w,h,cx,cy,label,
+      level:levelOf(label),
+      type:territoryType(label),
+      resource:resourceType(label),
+      original,
+      coordinate:grid.coordinate,
+      anchorCoordinate:grid.anchorCoordinate,
+      footprint:grid.footprint
+    };
+    cells.push(cell);
+
+    rect.addEventListener("click",e=>{
+      e.preventDefault();
+      cellDesignation.textContent = cell.coordinate;
+
+      // Calculation mode is handled by the border-start listener below.
+      // Do not allow the normal free-selection behavior here.
+      if (calculationMode.checked) {
+        if (!cell.border) toast(`Cell ${cell.coordinate}: choose an outer-border cell.`);
+        return;
+      }
+      if (cell.text && !rect.dataset.originalHtml) {
+        rect.dataset.originalHtml = cell.text.innerHTML;
+      }
+
+      // Free-selection mode: any cell can be toggled, with no 9-cell limit.
+      if(rect.classList.contains("selected")){
+        // selected > abandoned
+        rect.classList.remove("selected");
+        rect.classList.add("abandoned");
+        rect.style.fill="#9cff0066";
+        if(cell.text) cell.text.style.fill=readable(original);
+        if (cell.text) {
+          cell.text.innerHTML = '<tspan dy="5" font-size="25px">🚩</tspan>';
+        }
+      } else if (rect.classList.contains("abandoned")){
+        // abandoned > unselected
+        rect.classList.remove("abandoned");
+        rect.style.fill=original;
+
+        if (cell.text && rect.dataset.originalHtml) {
+          cell.text.innerHTML = rect.dataset.originalHtml;
+        }
+      } 
+      else {
+        // unselected to selected
+        rect.classList.add("selected");
+        rect.style.fill="#9cff00";
+        if(cell.text) cell.text.style.fill="#111";
+      }
+      save();
+      update();
+    });
+
+    rect.addEventListener("contextmenu",e=>{
+      e.preventDefault();
+      cellDesignation.textContent = cell.coordinate;
+
+      // Calculation mode is handled by the border-start listener below.
+      // Do not allow the normal free-selection behavior here.
+      if (calculationMode.checked) {
+        if (!cell.border) toast(`Cell ${cell.coordinate}: choose an outer-border cell.`);
+        return;
+      }
+      if (cell.text && !rect.dataset.originalHtml) {
+        rect.dataset.originalHtml = cell.text.innerHTML;
+      }
+
+      // Free-selection mode: any cell can be toggled, with no 9-cell limit.
+      if(rect.classList.contains("selected")){
+        // selected > abandoned
+        rect.classList.remove("selected");
+        rect.classList.add("abandoned");
+        rect.style.fill="#cc99cc66";
+        if(cell.text) cell.text.style.fill=readable(original);
+        if (cell.text) {
+          cell.text.innerHTML = '<tspan dy="5" font-size="25px">🏴‍☠️</tspan>';
+        }
+      } else if (rect.classList.contains("abandoned")){
+        // abandoned > unselected
+        rect.classList.remove("abandoned");
+        rect.style.fill=original;
+
+        if (cell.text && rect.dataset.originalHtml) {
+          cell.text.innerHTML = rect.dataset.originalHtml;
+        }
+      } 
+      else {
+        // unselected to selected
+        rect.classList.add("selected");
+        rect.style.fill="#cc99cc";
+        if(cell.text) cell.text.style.fill="#111";
+      }
+      save();
+      update();
+    });
+
+  });
+
+  function selected(){return cells.filter(c=>c.rect.classList.contains("selected"))}
+  function update(){
+    count.textContent=selected().length;
+    selectedLimit.textContent=calculationMode.checked ? "/ 9" : "/ ∞";
+  }
+
+  function save(){
+    localStorage.setItem(KEY,JSON.stringify(selected().map(c=>c.id)));
+  }
+
+  function load(){
+    try{
+      const a=JSON.parse(localStorage.getItem(KEY)||"[]");
+      return Array.isArray(a)?a:[];
+    }catch{return []}
+  }
+
+  /*
+   * USER-SELECTED 9-BLOCK ROUTING
+   *
+   * The user chooses any territory on the outermost border. That cell is
+   * the starting point. From there the algorithm finds the best 9-territory
+   * route toward the Royal City area, ending at the best of the three
+   * Level 6 Big City territories immediately surrounding the Royal City:
+   *   - directly above Royal City: Big City Building
+   *   - left of Royal City: Big City Soldier Training
+   *   - right of Royal City: Big City Technology
+   *   - directly below Royal City: Big City Technology
+   *
+   * The strategic scoring is dynamic:
+   *   - Level 1 = 10, Level 2 = 20, etc.
+   *   - settlements are more valuable than ordinary mines
+   *   - the two best resources are chosen from the local start-to-target
+   *     corridor; there is no fixed Iron > Food > Gold ordering
+   *   - mines are discounted, but become more valuable deeper into a route
+   *     because they represent fuel/support capacity
+   *   - a route cannot use more mines than its accumulated mine-slot capacity
+   *
+   * No route is precomputed. Every border click is evaluated on the fly.
+   */
+
+  const mapLeft = 5;
+  const mapTop = 4;
+  const mapRight = 1650;
+  const mapBottom = 1138;
+
+  const isBorderCell = cell =>
+    Math.abs(cell.x - mapLeft) < 2 ||
+    Math.abs(cell.y - mapTop) < 2 ||
+    Math.abs((cell.x + cell.w) - mapRight) < 2 ||
+    Math.abs((cell.y + cell.h) - mapBottom) < 2;
+
+  cells.forEach(c => {
+    c.border = isBorderCell(c);
+    if (c.border) c.rect.classList.add("border-start");
+  });
+
+  // These are the four Level 6 Big City territories surrounding the Royal City.
+  // Include the Building directly ABOVE the Royal City as a valid destination;
+  // it was previously omitted, which caused top-border starts to ignore a
+  // legitimate Level 6 endpoint.
+  const targetCells = () => cells.filter(c =>
+    c.level === 6 &&
+    c.type === "bigcity" &&
+    (
+      (c.x === 745 && c.y === 458) ||  // above: Big City Building
+      (c.x === 663 && c.y === 514) ||  // left: Big City Soldier Training
+      (c.x === 909 && c.y === 514) ||  // right: Big City Technology
+      (c.x === 745 && c.y === 628)     // below: Big City Technology
+    )
+  );
+
+  const centerDistance = (a,b) => Math.hypot(a.cx-b.cx, a.cy-b.cy);
+
+  /*
+   * Build geometric adjacency once. This works for the normal 82px cells as
+   * well as the wider/taller special territories in the center of the map.
+   */
+  const neighbors = new Map();
+  cells.forEach(a => neighbors.set(a.id, []));
+
+  for (let i=0; i<cells.length; i++) {
+    const a = cells[i];
+    for (let j=0; j<cells.length; j++) {
+      if (i === j) continue;
+      const b = cells[j];
+
+      const horizontalGap = Math.max(b.x - (a.x+a.w), a.x - (b.x+b.w), 0);
+      const verticalGap = Math.max(b.y - (a.y+a.h), a.y - (b.y+b.h), 0);
+
+      // Territories are adjacent when their rectangles touch or are separated
+      // only by the tiny grid gap. Diagonal/corner adjacency is also allowed.
+      if (horizontalGap <= 4 && verticalGap <= 4) {
+        neighbors.get(a.id).push(b);
+      }
+    }
+  }
+
+  const mineSlotsFor = state =>
+    Math.min(9, 2 + state.villages + state.level6 * 2);
+
+  /*
+   * Determine the two resource types that make the most sense for THIS
+   * starting position and THIS Level 6 target.
+   *
+   * This is intentionally dynamic rather than using a fixed Iron > Food >
+   * Gold hierarchy. A Gold territory that lies naturally along a route from
+   * the chosen border can therefore outrank Iron/Food if Gold is the better
+   * local opportunity.
+   */
+  const resourceFocusFor = (start, target) => {
+    const resourceTypes = ["iron", "food", "gold"];
+
+    const settlementMultiplier = type =>
+      type === "mine" ? 0.72 :
+      type === "village" ? 1.18 :
+      type === "city" ? 1.15 :
+      type === "manor" ? 1.12 :
+      type === "factory" ? 1.10 :
+      type === "town" ? 1.10 : 1.0;
+
+    const corridorScore = (cell) => {
+      const ax = start.cx, ay = start.cy;
+      const bx = target.cx, by = target.cy;
+      const px = cell.cx, py = cell.cy;
+      const abx = bx - ax, aby = by - ay;
+      const ab2 = abx * abx + aby * aby || 1;
+      let t = ((px - ax) * abx + (py - ay) * aby) / ab2;
+      t = Math.max(0, Math.min(1, t));
+      const qx = ax + t * abx, qy = ay + t * aby;
+      const perpendicular = Math.hypot(px - qx, py - qy);
+      const distanceFromStart = Math.hypot(px - ax, py - ay);
+
+      // Close to the actual start-to-target corridor is strongly preferred.
+      // A modest distance falloff also makes nearby resources more useful
+      // than resources that require a large detour.
+      const corridorWeight = Math.exp(-perpendicular / 170);
+      const distanceWeight = 1 / (1 + distanceFromStart / 900);
+      const levelWeight = 1 + cell.level * 0.08;
+      const settlementWeight = settlementMultiplier(cell.type);
+
+      return corridorWeight * distanceWeight * levelWeight * settlementWeight;
+    };
+
+    const scores = resourceTypes.map(resource => {
+      const candidates = cells
+        .filter(c => c.resource === resource)
+        .map(c => ({ cell:c, value:corridorScore(c) }))
+        .sort((a,b) => b.value - a.value);
+
+      // The strongest few opportunities define the local resource profile.
+      // This prevents one isolated high-level territory from overpowering an
+      // otherwise coherent regional resource.
+      const value = candidates.slice(0, 4).reduce((sum, item, index) => {
+        const diminishing = index === 0 ? 1 : index === 1 ? 0.65 : index === 2 ? 0.42 : 0.25;
+        return sum + item.value * diminishing;
+      }, 0);
+
+      return { resource, value };
+    }).sort((a,b) => b.value - a.value);
+
+    return {
+      primary: scores[0]?.resource || "none",
+      secondary: scores[1]?.resource || "none"
+    };
+  };
+
+  const routeCellScore = (cell, step, totalSteps, focus) => {
+    const base = territoryScore(cell.label, cell.y, mapBottom);
+    const isPrimary = cell.resource === focus.primary;
+    const isSecondary = cell.resource === focus.secondary;
+
+    // The two locally best resources receive the main resource bonus.
+    // The third resource is still useful and is never prohibited.
+    const resourceBonus = isPrimary ? 34 : isSecondary ? 25 : (cell.resource !== "none" ? 6 : 0);
+
+    if (cell.type !== "mine") {
+      return base.pathScore + resourceBonus;
+    }
+
+    // Mines remain secondary to settlements. They provide fuel/support and
+    // become a little more valuable as the route gets deeper.
+    const depthFactor = 0.75 + (step / Math.max(1,totalSteps-1)) * 0.5;
+    const mineBase = Math.round(cell.level * 10 * 0.45 * depthFactor);
+    const mineResourceBonus = isPrimary ? 14 : isSecondary ? 10 : 3;
+
+    return mineBase + mineResourceBonus;
+  };
+
+  const routeProgress = (from, to, target) => {
+    const before = centerDistance(from, target);
+    const after = centerDistance(to, target);
+    return before - after;
+  };
+
+  function findRoute(start) {
+    const targets = targetCells();
+    if (!start || !targets.length) return null;
+
+    let bestOverall = null;
+
+    // Solve each possible Level 6 destination independently. This keeps the
+    // dynamic program small and makes the result deterministic.
+    for (const target of targets) {
+      const focus = resourceFocusFor(start, target);
+      let states = new Map();
+      states.set(start.id, {
+        cell: start,
+        path: [start],
+        score: routeCellScore(start, 0, MAX, focus),
+        villages: start.type === "village" ? 1 : 0,
+        level6: start.level === 6 ? 1 : 0,
+        mines: start.type === "mine" ? 1 : 0
+      });
+
+      for (let step=1; step<MAX; step++) {
+        const next = new Map();
+
+        for (const state of states.values()) {
+          for (const nextCell of (neighbors.get(state.cell.id) || [])) {
+            // No immediate backtracking/revisiting. Because the route must
+            // generally move toward a fixed target, this is enough to keep
+            // the route simple without an enormous visited-set state.
+            if (state.path.some(c => c.id === nextCell.id)) continue;
+
+            const progress = routeProgress(state.cell, nextCell, target);
+            const tolerance = Math.max(nextCell.w, nextCell.h) * 0.45;
+            if (progress < -tolerance) continue;
+
+            const villages = state.villages + (nextCell.type === "village" ? 1 : 0);
+            const level6 = state.level6 + (nextCell.level === 6 ? 1 : 0);
+            const mines = state.mines + (nextCell.type === "mine" ? 1 : 0);
+            const mineSlots = mineSlotsFor({villages, level6});
+
+            // More mines than earned capacity means the route is not viable.
+            if (mines > mineSlots) continue;
+
+            // A target is only valid as the ninth/final territory.
+            if (target.id === nextCell.id && step !== MAX-1) continue;
+            if (target.id !== nextCell.id && step === MAX-1) continue;
+
+            const score = state.score +
+              routeCellScore(nextCell, step, MAX, focus) +
+              Math.round(Math.max(0, progress) * 0.015);
+
+            const candidate = {
+              cell: nextCell,
+              path: [...state.path, nextCell],
+              score,
+              villages,
+              level6,
+              mines
+            };
+
+            const stateKey = `${nextCell.id}|${villages}|${level6}|${mines}`;
+            const existing = next.get(stateKey);
+            if (!existing || candidate.score > existing.score) {
+              next.set(stateKey, candidate);
+            }
+          }
+        }
+
+        states = next;
+        if (!states.size) break;
+      }
+
+      for (const result of states.values()) {
+        if (result.cell.id !== target.id || result.path.length !== MAX) continue;
+        result.target = target;
+        result.resourceFocus = focus;
+        if (!bestOverall || result.score > bestOverall.score) {
+          bestOverall = result;
+        }
+      }
+    }
+
+    return bestOverall;
+  }
+
+  let activeStart = null;
+  let activeRoute = [];
+
+  function clearRouteVisuals() {
+    cells.forEach(c => {
+      c.rect.classList.remove("route", "selected");
+      c.rect.style.fill = c.original;
+      if (c.text) c.text.style.fill = readable(c.original);
+    });
+  }
+
+  function showChosenRoute(start) {
+    clearRouteVisuals();
+    activeStart = start;
+
+    const result = findRoute(start);
+
+    if (!result) {
+      activeRoute = [];
+      start.rect.classList.add("border-start");
+      info.textContent = `No valid 9-block route from this border territory.`;
+      toast("No optimal 9-block route exists from this border territory.");
+      update();
+      return;
+    }
+
+    activeRoute = result.path;
+
+    result.path.forEach(c => {
+      c.rect.classList.add("route", "selected");
+      c.rect.style.fill = "#9cff00";
+      if (c.text) c.text.style.fill = "#111";
+    });
+
+    start.rect.classList.add("border-start");
+
+    const target = result.target;
+    const focusText = [result.resourceFocus?.primary, result.resourceFocus?.secondary]
+      .filter(r => r && r !== "none")
+      .map(r => r.charAt(0).toUpperCase() + r.slice(1))
+      .join(" + ");
+    const targetSide = target.x === 745 && target.y === 458 ? "above Royal City (Building)" :
+                       target.x === 663 ? "left of Royal City (Soldier Training)" :
+                       target.x === 909 ? "right of Royal City (Technology)" :
+                       "below Royal City (Technology)";
+
+    info.textContent =
+      `9-block route • ${targetSide} • focus: ${focusText || "local resources"}`;
+
+    toast(`Best route found: ${targetSide}.`);
+    update();
+  }
+
+  // Border cells are route starting points. Clicking one recalculates the
+  // entire path from that exact territory.
+  cells.forEach(c => {
+    if (!c.border) return;
+    c.rect.addEventListener("click", e => {
+      e.preventDefault();
+      if (!calculationMode.checked) return;
+      cellDesignation.textContent = c.coordinate;
+      showChosenRoute(c);
+    });
+  });
+
+  // -------------------- Image export --------------------
+  function buildExportSvg() {
+    const clone = svg.cloneNode(true);
+    const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+    style.textContent = `
+      rect.xcell.selected{stroke:#315500!important;stroke-width:2!important;filter:none!important}
+      rect.xcell.route{stroke:#1769aa!important;stroke-width:3!important;stroke-dasharray:5 3}
+      rect.xcell.route.selected{stroke:#315500!important;stroke-width:3!important;stroke-dasharray:none}
+      rect.xcell.border-start{stroke:#ff8c00!important;stroke-width:3!important}
+      rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;stroke-dasharray:none}
+    `;
+    clone.insertBefore(style, clone.firstChild);
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+    return clone;
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function exportImage(format) {
+    const clone = buildExportSvg();
+    const serializer = new XMLSerializer();
+    const svgText = serializer.serializeToString(clone);
+    const vb = svg.viewBox.baseVal;
+    const scale = Math.min(2, 2400 / vb.width);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(vb.width * scale);
+    canvas.height = Math.round(vb.height * scale);
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const blob = new Blob([svgText], {type:"image/svg+xml;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    try {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = url;
+      });
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const mime = format === "jpeg" ? "image/jpeg" : "image/png";
+      const ext = format === "jpeg" ? "jpg" : "png";
+      canvas.toBlob(result => {
+        if (!result) { toast(`Could not create ${ext.toUpperCase()} export.`); return; }
+        downloadBlob(result, `xclash-map.${ext}`);
+        toast(`${ext.toUpperCase()} downloaded.`);
+      }, mime, format === "jpeg" ? 0.95 : undefined);
+    } catch (err) {
+      console.error(err);
+      toast(`Could not export ${format.toUpperCase()}.`);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  exportPng.addEventListener("click", () => exportImage("png"));
+  exportJpeg.addEventListener("click", () => exportImage("jpeg"));
+
+  // -------------------- Excel import/export --------------------
+  function coordinateMap() {
+    const map = new Map();
+    cells.forEach(c => c.footprint.forEach(coord => map.set(coord, c)));
+    return map;
+  }
+
+  function territoryDescription(c) {
+    return c.label.replace(/\s+/g, " ").trim();
+  }
+
+  function selectedSet() {
+    return new Set(selected().map(c => c.id));
+  }
+
+  async function exportWorkbook() {
+    if (typeof ExcelJS === "undefined") {
+      toast("Excel support could not load. Check your internet connection.");
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "XClash Interactive Map";
+    workbook.created = new Date();
+
+    const mapSheet = workbook.addWorksheet("Map");
+    mapSheet.getCell("A1").value = "XClash Map Visualization";
+    mapSheet.getCell("A1").font = {bold:true, size:14};
+    mapSheet.mergeCells("A1:T1");
+    mapSheet.getCell("A2").value = "Export preserves each territory's original color, territory text, multi-cell territory footprints, route borders, and lime-green selections.";
+    mapSheet.mergeCells("A2:T2");
+
+    const routeOrder = new Map(activeRoute.map((c,i) => [c.id, i+1]));
+    const usedSelected = selectedSet();
+
+    // ExcelJS merged cells require us to work from the actual SVG territory
+    // footprints.  Each territory is represented by one merged Excel range.
+    // This makes multi-cell territories (for example 2x2 or 2x1 areas) remain
+    // visually intact when opened in Excel.
+    const coordToExcel = coord => {
+      const m = String(coord).match(/^([A-T])(\d+)$/);
+      if (!m) return null;
+      return `${m[1]}${Number(m[2]) + 3}`;
+    };
+
+    const rgbToArgb = value => {
+      const c = color(value);
+      return `FF${[c.r,c.g,c.b].map(v=>v.toString(16).padStart(2,"0")).join("").toUpperCase()}`;
+    };
+
+    // Header row / column.
+    for (let c=0; c<20; c++) {
+      const cell = mapSheet.getCell(3, c+2);
+      cell.value = columnLetters[c];
+      cell.font = {bold:true, size:10};
+      cell.alignment = {horizontal:"center", vertical:"middle"};
+      cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFD9E1F2"}};
+      cell.border = {
+        top:{style:"thin",color:{argb:"FF999999"}}, bottom:{style:"thin",color:{argb:"FF999999"}},
+        left:{style:"thin",color:{argb:"FF999999"}}, right:{style:"thin",color:{argb:"FF999999"}}
+      };
+    }
+    mapSheet.getCell("A3").value = "Row / Col";
+    mapSheet.getCell("A3").font = {bold:true, size:10};
+    mapSheet.getCell("A3").alignment = {horizontal:"center", vertical:"middle", wrapText:true};
+    mapSheet.getCell("A3").fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFD9E1F2"}};
+
+    for (let r=1; r<=20; r++) {
+      const header = mapSheet.getCell(r+3, 1);
+      header.value = r;
+      header.font = {bold:true, size:10};
+      header.alignment = {horizontal:"center", vertical:"middle"};
+      header.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFD9E1F2"}};
+      header.border = {
+        top:{style:"thin",color:{argb:"FF999999"}}, bottom:{style:"thin",color:{argb:"FF999999"}},
+        left:{style:"thin",color:{argb:"FF999999"}}, right:{style:"thin",color:{argb:"FF999999"}}
+      };
+    }
+
+    // Establish the full grid first so even cells that are not covered by a
+    // larger territory retain a normal Excel border/background.
+    for (let r=1; r<=20; r++) {
+      for (let c=0; c<20; c++) {
+        const excelCell = mapSheet.getCell(r+3, c+2);
+        excelCell.value = `${columnLetters[c]}${r}`;
+        excelCell.alignment = {horizontal:"center", vertical:"middle", wrapText:true};
+        excelCell.border = {
+          top:{style:"thin",color:{argb:"FF999999"}}, bottom:{style:"thin",color:{argb:"FF999999"}},
+          left:{style:"thin",color:{argb:"FF999999"}}, right:{style:"thin",color:{argb:"FF999999"}}
+        };
+        excelCell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFFFFFFF"}};
+        excelCell.font = {name:"Arial", size:8, color:{argb:"FF111111"}};
+      }
+    }
+
+    // Render every actual SVG territory into Excel, preserving its original
+    // background color, text, and footprint.  Selected cells use the same
+    // lime-green treatment users see in the browser.  Route cells receive a
+    // blue border unless they are selected, in which case lime-green remains
+    // the dominant fill just as it is on the web map.
+    const occupied = new Set();
+    for (const territory of cells) {
+      const footprint = territory.footprint || [];
+      if (!footprint.length) continue;
+
+      const positions = footprint.map(coord => {
+        const m = String(coord).match(/^([A-T])(\d+)$/);
+        return m ? {c:columnLetters.indexOf(m[1]), r:Number(m[2])-1} : null;
+      }).filter(Boolean);
+      if (!positions.length) continue;
+
+      const minC=Math.min(...positions.map(p=>p.c)), maxC=Math.max(...positions.map(p=>p.c));
+      const minR=Math.min(...positions.map(p=>p.r)), maxR=Math.max(...positions.map(p=>p.r));
+      const expected=(maxC-minC+1)*(maxR-minR+1);
+      if (positions.length !== expected) continue; // safety: only merge rectangles
+
+      const start=`${columnLetters[minC]}${minR+4}`;
+      const end=`${columnLetters[maxC]}${maxR+4}`;
+      const range=`${start}:${end}`;
+
+      // Skip accidental overlap rather than producing an invalid workbook.
+      let overlaps=false;
+      for (const pos of positions) {
+        const key=`${pos.c},${pos.r}`;
+        if (occupied.has(key)) { overlaps=true; break; }
+      }
+      if (overlaps) continue;
+      positions.forEach(pos=>occupied.add(`${pos.c},${pos.r}`));
+
+      const isSelected=usedSelected.has(territory.id);
+      const territoryFill = isSelected ? "FF9CFF00" : rgbToArgb(territory.original);
+
+      // Paint every underlying grid cell before merging. This makes the
+      // territory color survive in Excel even for multi-cell footprints.
+      for (const pos of positions) {
+        const underlying = mapSheet.getCell(pos.r + 4, pos.c + 2);
+        underlying.fill = {type:"pattern", pattern:"solid", fgColor:{argb:territoryFill}};
+      }
+
+      if (start !== end) mapSheet.mergeCells(range);
+      const excelCell=mapSheet.getCell(start);
+      const order=routeOrder.get(territory.id);
+      const label=territoryDescription(territory);
+
+      excelCell.value = label || territory.coordinate;
+      excelCell.alignment = {
+        horizontal:"center", vertical:"middle", wrapText:true,
+        shrinkToFit:true
+      };
+      excelCell.font = {
+        name:"Arial",
+        size: territory.text && territory.text.classList.contains("specialtext") ? 9 : 8,
+        bold: isSelected,
+        color:{argb:"FF111111"}
+      };
+      excelCell.fill = {
+        type:"pattern", pattern:"solid",
+        fgColor:{argb: territoryFill}
+      };
+
+      const borderColor = isSelected ? "FF315500" : (order ? "FF1769AA" : "FF333333");
+      const borderStyle = order ? "medium" : "thin";
+      excelCell.border = {
+        top:{style:borderStyle,color:{argb:borderColor}},
+        bottom:{style:borderStyle,color:{argb:borderColor}},
+        left:{style:borderStyle,color:{argb:borderColor}},
+        right:{style:borderStyle,color:{argb:borderColor}}
+      };
+
+      // Keep route order available without replacing the actual territory text.
+      // A cell comment preserves the extra state without visually changing the map.
+      if (order) {
+        excelCell.note = `Route #${order}\nCoordinate: ${territory.coordinate}`;
+      }
+    }
+
+    mapSheet.getColumn(1).width = 11;
+    for (let c=2; c<=21; c++) mapSheet.getColumn(c).width = 14;
+    for (let r=4; r<=23; r++) mapSheet.getRow(r).height = 42;
+    mapSheet.views = [{showGridLines:false}];
+    mapSheet.freezePane = {xSplit:1, ySplit:3};
+
+    const dataSheet = workbook.addWorksheet("Territories");
+    dataSheet.columns = [
+      {header:"Coordinate", key:"coordinate", width:14},
+      {header:"Anchor", key:"anchor", width:12},
+      {header:"Footprint", key:"footprint", width:24},
+      {header:"Selected", key:"selected", width:12},
+      {header:"Route Order", key:"routeOrder", width:12},
+      {header:"Level", key:"level", width:10},
+      {header:"Type", key:"type", width:14},
+      {header:"Resource", key:"resource", width:12},
+      {header:"Territory", key:"territory", width:50}
+    ];
+    cells.forEach(c => {
+      dataSheet.addRow({
+        coordinate:c.coordinate,
+        anchor:c.anchorCoordinate,
+        footprint:c.footprint.join(", "),
+        selected:usedSelected.has(c.id) ? "YES" : "NO",
+        routeOrder:routeOrder.get(c.id) || "",
+        level:c.level,
+        type:c.type,
+        resource:c.resource,
+        territory:territoryDescription(c)
+      });
+    });
+    dataSheet.getRow(1).font = {bold:true,color:{argb:"FFFFFFFF"}};
+    dataSheet.getRow(1).fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FF315D9B"}};
+    dataSheet.views = [{state:"frozen", ySplit:1}];
+
+    const stateSheet = workbook.addWorksheet("State");
+    stateSheet.getCell("A1").value = "Calculation Mode";
+    stateSheet.getCell("B1").value = calculationMode.checked ? "ON" : "OFF";
+    stateSheet.getCell("A2").value = "Selected Count";
+    stateSheet.getCell("B2").value = selected().length;
+    stateSheet.getCell("A3").value = "Route Target";
+    stateSheet.getCell("B3").value = activeRoute.length ? (activeRoute[activeRoute.length-1].label || "") : "";
+    stateSheet.getCell("A4").value = "Route Coordinates";
+    stateSheet.getCell("B4").value = activeRoute.map(c=>c.coordinate).join(" → ");
+    stateSheet.getColumn(1).width = 24;
+    stateSheet.getColumn(2).width = 90;
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    downloadBlob(new Blob([buffer], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}), "xclash-map.xlsx");
+    toast("Excel workbook downloaded with map formatting.");
+  }
+
+    async function importWorkbook(file) {
+    if (typeof ExcelJS === "undefined") {
+      toast("Excel support could not load. Check your internet connection.");
+      return;
+    }
+    try {
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(await file.arrayBuffer());
+      const byCoord = coordinateMap();
+      const coordsToSelect = new Set();
+      const mapSheet = workbook.getWorksheet("Map");
+
+      // Import selection state ONLY from the lime-green fill in the Map sheet.
+      // The rest of the Excel formatting is intentionally ignored so that
+      // changing a territory color or text in Excel does not accidentally
+      // change the map selection state.
+      if (mapSheet) {
+        for (let r=1; r<=20; r++) {
+          for (let c=0; c<20; c++) {
+            const coord = `${columnLetters[c]}${r}`;
+            const cell = mapSheet.getCell(r+3, c+2);
+            const fill = cell.fill;
+            const fg = fill && fill.fgColor ? String(fill.fgColor.argb || "").toUpperCase() : "";
+            if (fg.endsWith("9CFF00")) coordsToSelect.add(coord);
+          }
+        }
+      }
+
+      clearRouteVisuals();
+      activeStart = null;
+      activeRoute = [];
+      cells.forEach(c => {
+        c.rect.classList.remove("selected");
+        c.rect.style.fill = c.original;
+        if (c.text) c.text.style.fill = readable(c.original);
+      });
+      const selectedTerritories = new Set();
+      coordsToSelect.forEach(coord => {
+        const territory = byCoord.get(coord);
+        if (territory) selectedTerritories.add(territory.id);
+      });
+      selectedTerritories.forEach(id => {
+        const c = cells.find(x => x.id === id);
+        if (!c) return;
+        c.rect.classList.add("selected");
+        c.rect.style.fill = "#9cff00";
+        if (c.text) c.text.style.fill = "#111";
+      });
+      save();
+      update();
+      toast(`Imported ${selectedTerritories.size} selected territories.`);
+    } catch (err) {
+      console.error(err);
+      toast("Could not read that Excel file.");
+    } finally {
+      importXlsx.value = "";
+    }
+  }
+
+  exportXlsx.addEventListener("click", exportWorkbook);
+  importXlsxButton.addEventListener("click", () => importXlsx.click());
+  importXlsx.addEventListener("change", e => {
+    const file = e.target.files && e.target.files[0];
+    if (file) importWorkbook(file);
+  });
+
+  routeButton.addEventListener("click", () => {
+    clearRouteVisuals();
+    activeStart = null;
+    activeRoute = [];
+    info.textContent = calculationMode.checked
+      ? "Calculation mode: click an outer-border territory to calculate your 9-block route."
+      : "Free-selection mode: click any cell to toggle it lime green.";
+    update();
+  });
+
+  calculationMode.addEventListener("change", () => {
+    clearRouteVisuals();
+    activeStart = null;
+    activeRoute = [];
+    info.textContent = calculationMode.checked
+      ? "Calculation mode: click an outer-border territory to calculate your 9-block route."
+      : "Free-selection mode: click any cell to toggle it lime green.";
+    update();
+  });
+
+  clear.addEventListener("click",()=>{
+    clearRouteVisuals();
+    activeStart = null;
+    activeRoute = [];
+    localStorage.removeItem(KEY);
+    info.textContent = calculationMode.checked
+      ? "Calculation mode: click an outer-border territory to calculate your 9-block route."
+      : "Free-selection mode: click any cell to toggle it lime green.";
+    cellDesignation.textContent = "—";
+    update();
+  });
+
+  // The route is now intentionally NOT calculated on page load. The user
+  // must choose the outer-border starting territory first.
+  update();
+  update();
+})();
+</script>
+</body>
+</html>
