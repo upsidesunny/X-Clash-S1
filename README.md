@@ -8,11 +8,14 @@ Source code was copied from online of unknown author and modifications were made
 
 
 How to use:
-  - left click = ZSW
-  - right click = VRW or other unions (if have)
-
+  - left click = status rotation allow fast operations
   - states: unoccupied --> occupied --> abandoned
     (now this is a bit buggy since no checking on union is done, but will not affect final output if using properly)
+
+  - right click = context menu for detailed operatons
+  - states: occupied, abandoned
+            to-be-occupied, to-be-abandoned
+            rival-occupied, rival-abandoend, clear
 
 
 
