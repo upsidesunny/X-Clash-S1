@@ -20,7 +20,12 @@ How to use:
 
 
 Update log:
+  v1.1.0 - 20260913
+    - Added more states and improved operations
+    - Excel import and export will not fix, too many hard code
+  
+    
   v1.0.0 - 20260830
     - Customization
     - Calculation mode does not work, and will not fix in future versions
-    - Excel inport and export does not work, will fix later when have time
+    - Excel import and export does not work, will fix later when have time
