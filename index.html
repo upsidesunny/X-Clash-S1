@@ -27,14 +27,14 @@ button:active{transform:scale(.97)}
 #map-viewport{flex:1;min-height:0;overflow:auto;background:#fff;-webkit-overflow-scrolling:touch}
 #map-container{min-width:700px}
 #map-container svg{display:block;width:100%;height:auto;user-select:none;-webkit-user-select:none}
-rect.xcell{cursor:pointer;transition:filter .12s,fill .12s,stroke .12s}
-rect.xcell:hover{stroke:#111!important;stroke-width:2!important}
+/* rect.xcell{cursor:pointer;transition:filter .12s,fill .12s,stroke .12s} */
+/* rect.xcell:hover{stroke:#111!important;stroke-width:2!important} */
 text.xtext{pointer-events:none}
-rect.xcell.selected{stroke:#315500!important;stroke-width:2!important;filter:none!important}
-rect.xcell.route{stroke:#1769aa!important;stroke-width:3!important;stroke-dasharray:5 3}
-rect.xcell.route.selected{stroke:#315500!important;stroke-width:3!important;stroke-dasharray:none}
-rect.xcell.border-start{stroke:#ff8c00!important;stroke-width:3!important}
-rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;stroke-dasharray:none}
+/* rect.xcell.selected{stroke:#315500!important;stroke-width:2!important;filter:none!important} */
+/* rect.xcell.route{stroke:#1769aa!important;stroke-width:3!important;stroke-dasharray:5 3} */
+/* rect.xcell.route.selected{stroke:#315500!important;stroke-width:3!important;stroke-dasharray:none}
+rect.xcell.border-start{stroke:#ff8c00!important;stroke-width:3!important} */
+/* rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;stroke-dasharray:none} */
 #message{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(0,0,0,.84);color:#fff;padding:9px 13px;border-radius:7px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;text-align:center;max-width:90%}
 #message.show{opacity:1}
 #route-info{width:100%;font-size:12px;opacity:.9}
@@ -46,10 +46,43 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
   button{padding:7px 9px;font-size:12px}
   #route-info{order:10}
 }
+
+#context-menu {
+  display: none;
+  z-index: 99;
+  position: absolute;
+  background-color: #fff;
+  grid-template-columns: 66px 66px 66px;
+  grid-template-rows: 66px 66px 66px;
+}
+.menu-item {
+  height: 66px;
+  line-height: 33px;
+  text-align: center;
+  font-size: 10px;
+  border: 1px solid black;
+}
+.menu-item:hover {
+  cursor: pointer;
+  background-color: #ddd;
+}
 </style>
 </head>
 <body>
 <div id="app">
+
+  <div id="context-menu">
+    <div class="menu-item" id="item-occupied" style="line-height: 66px;">已佔領</div>
+    <div class="menu-item" id="item-abandoned">🚩<br/>已放棄</div>
+    <div class="menu-item"></div>
+    <div class="menu-item" id="item-to-be-occupied">🎯<br/>目標</div>
+    <div class="menu-item" id="item-to-be-abandoned">❌<br/>放棄目標</div>
+    <div class="menu-item"></div>
+    <div class="menu-item" id="item-rival-occupied" style="line-height: 66px;">對方已佔領</div>
+    <div class="menu-item" id="item-rival-abandoned">🏴‍☠️<br/>對方已放棄</div>
+    <div class="menu-item" id="item-not-selected" style="line-height: 66px;">清空標記</div>
+  </div>
+
   <div id="toolbar">
     <strong>Selected:</strong><span id="selected-count">0</span><span id="selected-limit">/ 9</span>
     <span>Cell:</span><span id="cell-designation">—</span>
@@ -100,7 +133,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="498" y="4" width="82" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
 <text class="celltext" x="539.0" y="27.5">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-35" dy="6" font-size="28px">1</tspan>
 </text>
 <rect x="580" y="4" width="83" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
@@ -139,7 +172,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="1238" y="4" width="83" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
 <text class="celltext" x="1279.5" y="27.5">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-35" dy="6" font-size="28px">1</tspan>
 </text>
 <rect x="1321" y="4" width="82" height="57" fill="rgb(208,240,248)" stroke="#222" stroke-width="1"/>
@@ -266,7 +299,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="498" y="117" width="82" height="57" fill="rgb(240,200,168)" stroke="#222" stroke-width="1"/>
 <text class="celltext" x="539.0" y="140.5">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-34" dy="6" font-size="28px">2</tspan>
 </text>
 <rect x="580" y="117" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
@@ -305,7 +338,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="1238" y="117" width="83" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
 <text class="celltext" x="1279.5" y="140.5">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-34" dy="6" font-size="28px">2</tspan>
 </text>
 <rect x="1321" y="117" width="82" height="57" fill="rgb(152,216,248)" stroke="#222" stroke-width="1"/>
@@ -411,7 +444,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="5" y="231" width="82" height="56" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
 <text class="celltext" x="46.0" y="254.0">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-34" dy="6" font-size="28px">1</tspan>
 </text>
 <rect x="87" y="231" width="82" height="56" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
@@ -647,7 +680,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="1403" y="344" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
 <text class="celltext" x="1444.0" y="367.5">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-34" dy="6" font-size="28px">2</tspan>
 </text>
 <rect x="1485" y="344" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
@@ -886,7 +919,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="1567" y="514" width="83" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
 <text class="celltext" x="1608.5" y="537.5">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-34" dy="6" font-size="28px">1</tspan>
 </text>
 <rect x="5" y="571" width="82" height="57" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
@@ -900,7 +933,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="169" y="571" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
 <text class="celltext" x="210.0" y="594.5">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-34" dy="6" font-size="28px">2</tspan>
 </text>
 <rect x="251" y="571" width="83" height="57" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
@@ -1345,7 +1378,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="1403" y="854" width="82" height="57" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
 <text class="celltext" x="1444.0" y="877.5">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-34" dy="6" font-size="28px">2</tspan>
 </text>
 <rect x="1485" y="854" width="82" height="57" fill="rgb(192,232,248)" stroke="#222" stroke-width="1"/>
@@ -1354,7 +1387,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="1567" y="854" width="83" height="57" fill="rgb(208,208,208)" stroke="#222" stroke-width="1"/>
 <text class="celltext" x="1608.5" y="877.5">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-34" dy="6" font-size="28px">1</tspan>
 </text>
 <rect x="5" y="911" width="82" height="57" fill="rgb(248,248,0)" stroke="#222" stroke-width="1"/>
@@ -1469,7 +1502,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="498" y="968" width="82" height="56" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
 <text class="celltext" x="539.0" y="991.0">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-34" dy="6" font-size="28px">2</tspan>
 </text>
 <rect x="580" y="968" width="83" height="56" fill="rgb(104,208,248)" stroke="#222" stroke-width="1"/>
@@ -1499,7 +1532,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="1074" y="968" width="82" height="56" fill="rgb(240,192,168)" stroke="#222" stroke-width="1"/>
 <text class="celltext" x="1115.0" y="991.0">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-34" dy="6" font-size="28px">2</tspan>
 </text>
 <rect x="1156" y="968" width="82" height="56" fill="rgb(144,224,248)" stroke="#222" stroke-width="1"/>
@@ -1696,7 +1729,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="745" y="458" width="164" height="56" fill="rgb(248,48,152)" stroke="#222" stroke-width="1.2"/>
 <text class="specialtext" x="827.0" y="480.5">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-34" dy="6" font-size="28px">6</tspan>
 </text>
 <rect x="663" y="514" width="82" height="114" fill="rgb(248,48,152)" stroke="#222" stroke-width="1.2"/>
@@ -1706,7 +1739,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="745" y="514" width="164" height="114" fill="rgb(200,152,0)" stroke="#222" stroke-width="1.2"/>
 <text class="specialtext" x="827.0" y="565.5">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-34" dy="6" font-size="28px">7</tspan>
 </text>
 <rect x="909" y="514" width="83" height="114" fill="rgb(248,48,152)" stroke="#222" stroke-width="1.2"/>
@@ -1716,7 +1749,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 </text>
 <rect x="745" y="628" width="164" height="56" fill="rgb(248,48,152)" stroke="#222" stroke-width="1.2"/>
 <text class="specialtext" x="827.0" y="650.5">
-<tspan dx="2" dy="5" font-size="80px">⌂</tspan>
+<tspan dx="2" dy="7.5" font-size="80px">⌂</tspan>
 <tspan dx="-34" dy="6" font-size="28px">6</tspan>
 </text>
 <rect x="909" y="684" width="165" height="57" fill="rgb(249,129,41)" stroke="#222" stroke-width="1.2"/>
@@ -1749,6 +1782,8 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
   const importXlsxButton = document.querySelector("#import-xlsx-button");
   const importXlsx = document.querySelector("#import-xlsx");
   const msg = document.querySelector("#message");
+
+  const menu = document.querySelector("#context-menu");
   if (!svg) return;
 
   let timer;
@@ -1909,6 +1944,9 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
     };
   };
 
+  let selectedRect = null;
+  let selectedCell = null;
+
   const rects=[...svg.querySelectorAll("rect")];
   const texts=[...svg.querySelectorAll("text")].map(t=>{
     const x=parseFloat(t.getAttribute("x"))||0;
@@ -1918,6 +1956,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 
   const cells=[];
   rects.forEach((rect,index)=>{
+
     const x=parseFloat(rect.getAttribute("x"))||0;
     const y=parseFloat(rect.getAttribute("y"))||0;
     const w=parseFloat(rect.getAttribute("width"))||0;
@@ -1943,7 +1982,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
     const id=`${x}_${y}_${w}_${h}`;
     const grid = footprintFor(x,y,w,h);
 
-    rect.classList.add("xcell");
+    //rect.classList.add("xcell");
     rect.dataset.id=id;
     rect.dataset.coordinate=grid.coordinate;
     rect.dataset.gridFootprint=grid.footprint.join(",");
@@ -1967,6 +2006,8 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
     };
     cells.push(cell);
 
+    rect.dataset.originalHtml = cell.text.innerHTML;
+
     rect.addEventListener("click",e=>{
       e.preventDefault();
       cellDesignation.textContent = cell.coordinate;
@@ -1989,7 +2030,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
         rect.style.fill="#9cff0066";
         if(cell.text) cell.text.style.fill=readable(original);
         if (cell.text) {
-          cell.text.innerHTML = '<tspan dy="5" font-size="25px">🚩</tspan>';
+          cell.text.innerHTML = '<tspan dy="7.5" font-size="25px">🚩</tspan>';
         }
       } else if (rect.classList.contains("abandoned")){
         // abandoned > unselected
@@ -2012,50 +2053,108 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 
     rect.addEventListener("contextmenu",e=>{
       e.preventDefault();
-      cellDesignation.textContent = cell.coordinate;
 
-      // Calculation mode is handled by the border-start listener below.
-      // Do not allow the normal free-selection behavior here.
-      if (calculationMode.checked) {
-        if (!cell.border) toast(`Cell ${cell.coordinate}: choose an outer-border cell.`);
-        return;
-      }
-      if (cell.text && !rect.dataset.originalHtml) {
-        rect.dataset.originalHtml = cell.text.innerHTML;
-      }
+      selectedRect = rect;
+      selectedCell = cell;
 
-      // Free-selection mode: any cell can be toggled, with no 9-cell limit.
-      if(rect.classList.contains("selected")){
-        // selected > abandoned
-        rect.classList.remove("selected");
-        rect.classList.add("abandoned");
-        rect.style.fill="#cc99cc66";
-        if(cell.text) cell.text.style.fill=readable(original);
-        if (cell.text) {
-          cell.text.innerHTML = '<tspan dy="5" font-size="25px">🏴‍☠️</tspan>';
-        }
-      } else if (rect.classList.contains("abandoned")){
-        // abandoned > unselected
-        rect.classList.remove("abandoned");
-        rect.style.fill=original;
-
-        if (cell.text && rect.dataset.originalHtml) {
-          cell.text.innerHTML = rect.dataset.originalHtml;
-        }
-      } 
-      else {
-        // unselected to selected
-        rect.classList.add("selected");
-        rect.style.fill="#cc99cc";
-        if(cell.text) cell.text.style.fill="#111";
-      }
-      save();
-      update();
+      menu.style.display = "grid";
+      menu.style.left = `${e.pageX}px`;
+      menu.style.top = `${e.pageY}px`;
     });
+  });
 
+  document.addEventListener("click", () => {
+    menu.style.display = "none";
+  });
+
+  document.getElementById("item-occupied").addEventListener("click", () => {
+    if (!selectedRect) return;
+
+    selectedRect.setAttribute("class", "selected");
+    selectedRect.style.fill="#9cff00";
+    selectedCell.text.innerHTML = selectedRect.dataset.originalHtml;
+
+    save();
+    update();
+  });
+
+  document.getElementById("item-abandoned").addEventListener("click", () => {
+    if (!selectedRect) return;
+
+    selectedRect.setAttribute("class", "abandoned");
+    selectedRect.style.fill="#9cff0066";
+    selectedCell.text.innerHTML = '<tspan dy="7.5" font-size="25px">🚩</tspan>';
+
+    save();
+    update();
+  });
+
+  document.getElementById("item-to-be-occupied").addEventListener("click", () => {
+    if (!selectedRect) return;
+
+    selectedRect.setAttribute("class", "to-be-occupied");
+    selectedRect.style.fill="#9cff00";
+    selectedCell.text.innerHTML = '<tspan dy="7.5" font-size="25px">🎯</tspan>';
+    
+    save();
+    update();
+    
+  });
+
+  document.getElementById("item-to-be-abandoned").addEventListener("click", () => {
+    if (!selectedRect) return;
+
+    selectedRect.setAttribute("class", "to-be-abandoned");
+    selectedRect.style.fill="#9cff0066";
+    selectedCell.text.innerHTML = '<tspan dy="7.5" font-size="25px">❌</tspan>';
+    
+    save();
+    update();
+    
+  });
+
+  document.getElementById("item-rival-occupied").addEventListener("click", () => {
+    if (!selectedRect) return;
+
+    selectedRect.setAttribute("class", "rival-occupied");
+    selectedRect.style.fill="#cc99cc";
+    selectedCell.text.innerHTML = selectedRect.dataset.originalHtml;
+    
+    save();
+    update();
+    
+  });
+
+  document.getElementById("item-rival-abandoned").addEventListener("click", () => {
+    if (!selectedRect) return;
+
+    selectedRect.setAttribute("class", "rival-abandoned");
+    selectedRect.style.fill="#cc99cc66";
+    selectedCell.text.innerHTML = '<tspan dy="7.5" font-size="25px">🏴‍☠️</tspan>';
+    
+    save();
+    update();
+    
+  });
+
+  document.getElementById("item-not-selected").addEventListener("click", () => {
+    if (!selectedRect) return;
+
+    selectedRect.style.fill = selectedRect.dataset.originalFill;
+    selectedCell.text.innerHTML = selectedRect.dataset.originalHtml;
+    
+    save();
+    update();
+    
   });
 
   function selected(){return cells.filter(c=>c.rect.classList.contains("selected"))}
+  function abandoned(){return cells.filter(c=>c.rect.classList.contains("abandoned"))}
+  function toBeOccupied(){return cells.filter(c=>c.rect.classList.contains("to-be-occupied"))}
+  function toBeAbandoned(){return cells.filter(c=>c.rect.classList.contains("to-be-abandoned"))}
+  function rivalOccupied(){return cells.filter(c=>c.rect.classList.contains("rival-occupied"))}
+  function rivalAbandoned(){return cells.filter(c=>c.rect.classList.contains("rival-abandoned"))}
+
   function update(){
     count.textContent=selected().length;
     selectedLimit.textContent=calculationMode.checked ? "/ 9" : "/ ∞";
@@ -2109,7 +2208,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
 
   cells.forEach(c => {
     c.border = isBorderCell(c);
-    if (c.border) c.rect.classList.add("border-start");
+    //if (c.border) c.rect.classList.add("border-start");
   });
 
   // These are the four Level 6 Big City territories surrounding the Royal City.
@@ -2482,6 +2581,21 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
   function selectedSet() {
     return new Set(selected().map(c => c.id));
   }
+  function abandonedSet() {
+    return new Set(abandoned().map(c => c.id));
+  }
+  function toBeOccupiedSet() {
+    return new Set(toBeOccupied().map(c => c.id));
+  }
+  function toBeAbandonedSet() {
+    return new Set(toBeAbandoned().map(c => c.id));
+  }
+  function rivalOccupiedSet() {
+    return new Set(rivalOccupied().map(c => c.id));
+  }
+  function rivalAbandonedSet() {
+    return new Set(rivalAbandoned().map(c => c.id));
+  }
 
   async function exportWorkbook() {
     if (typeof ExcelJS === "undefined") {
@@ -2501,7 +2615,16 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
     mapSheet.mergeCells("A2:T2");
 
     const routeOrder = new Map(activeRoute.map((c,i) => [c.id, i+1]));
-    const usedSelected = selectedSet();
+    const userSelected = selectedSet();
+    const userAbandoned = abandonedSet();
+    const userToBeOccupied = toBeOccupiedSet();
+    const userToBeAbandoned = toBeAbandonedSet();
+    const rivalOccupied = rivalOccupiedSet();
+    const rivalAbandoned = rivalAbandonedSet();
+
+    console.log(userSelected);
+    console.log(userAbandoned);
+
 
     // ExcelJS merged cells require us to work from the actual SVG territory
     // footprints.  Each territory is represented by one merged Excel range.
@@ -2597,8 +2720,21 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
       if (overlaps) continue;
       positions.forEach(pos=>occupied.add(`${pos.c},${pos.r}`));
 
-      const isSelected=usedSelected.has(territory.id);
-      const territoryFill = isSelected ? "FF9CFF00" : rgbToArgb(territory.original);
+      const isSelected = userSelected.has(territory.id);
+      const isAbandoned = userAbandoned.has(territory.id);
+      const isToBeOccupied = userToBeOccupied.has(territory.id);
+      const isToBeAbandoned = userToBeAbandoned.has(territory.id);
+      const isRivalOccupied = rivalOccupied.has(territory.id);
+      const isRivalAbandoned = rivalAbandoned.has(territory.id); 
+      
+      let color = rgbToArgb(territory.original);
+
+      if (isSelected || isToBeOccupied) { color = "FF9CFF00" }
+      else if (isAbandoned || isToBeAbandoned) { color = "669CFF00" }
+      else if (isRivalOccupied) { color = "FFCC99CC" }
+      else if (isRivalAbandoned) { color = "66CC99CC" }
+
+      const territoryFill = color;//isSelected ? "FF9CFF00" : rgbToArgb(territory.original);
 
       // Paint every underlying grid cell before merging. This makes the
       // territory color survive in Excel even for multi-cell footprints.
@@ -2607,7 +2743,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
         underlying.fill = {type:"pattern", pattern:"solid", fgColor:{argb:territoryFill}};
       }
 
-      if (start !== end) mapSheet.mergeCells(range);
+      //if (start !== end) mapSheet.mergeCells(range);
       const excelCell=mapSheet.getCell(start);
       const order=routeOrder.get(territory.id);
       const label=territoryDescription(territory);
@@ -2667,7 +2803,7 @@ rect.xcell.border-start.route{stroke:#ff8c00!important;stroke-width:4!important;
         coordinate:c.coordinate,
         anchor:c.anchorCoordinate,
         footprint:c.footprint.join(", "),
-        selected:usedSelected.has(c.id) ? "YES" : "NO",
+        selected:userSelected.has(c.id) ? "YES" : "NO",
         routeOrder:routeOrder.get(c.id) || "",
         level:c.level,
         type:c.type,
